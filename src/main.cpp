@@ -1,4 +1,4 @@
-#include <Arduino.h>
+﻿#include <Arduino.h>
 #include <WiFi.h>
 #include "mbedtls/md.h"
 #include <Cryptojs.h>
@@ -378,4 +378,4 @@ void loop()
   }
   //GetRandomString(RandomNumberBuffer,32);
   //delayMicroseconds(1000000);
-}
+}  
