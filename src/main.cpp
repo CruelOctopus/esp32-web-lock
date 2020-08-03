@@ -11,8 +11,8 @@ const char *Ok_js_header = "HTTP/1.1 200 OK\nHost: site.com\nContent-Type: appli
 //const char* ssid     = "ESP32-Access-Point";
 //const char* password = "123456789";
 
-const char *ssid = "Your SSID";
-const char *password = "Your password";
+const char *ssid = "ssid";
+const char *password = "password";
 
 
 
@@ -66,7 +66,7 @@ String Hmac256Calculate(char *key, char *payload)
   }
   return result;
 }
-int Hmac256Verify(char *key,char *rowdata,char *encrypteddata)
+int Hmac256Verify(char *key,char *rowdata,String *encrypteddata)
 {
   String result = Hmac256Calculate(key,rowdata);
   
@@ -242,7 +242,9 @@ void loop()
           // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
           // and a content-type so the client knows what's coming, then a blank line:
           GetPath(header, path, &NArg);
-          if ((path[NArg - 1].indexOf(".js")) > 0)
+          Serial.print(path[0]);
+          Serial.print(NArg);
+          if (path[NArg - 1].indexOf(".js") > 0)
           {
             header = path[NArg - 1];
             if (header.indexOf("/Crypto.js") >= 0)
@@ -284,29 +286,16 @@ void loop()
               client.write(SC_SHA256_js_min_gz, sizeof(SC_SHA256_js_min_gz));
               break;
             }
-          }
-          else if ((path[NArg - 1].indexOf(".js") == -1))
-          {
-            //NOT FFOUND PAGE
-          }
-          else
+          }else
           {
 
-            if ((path[0] == "/") && (NArg == 1))
+            if (path[0] == "/")
             {
               Serial.println("GET /root");
               client.println("HTTP/1.1 200 OK");
               client.println("Content-type:text/html; charset=utf-8");
               client.println("Connection: close");
               client.println();
-
-              if (IsRandomSend == 0)
-              {
-                RandomString = GetRandomString(RandomNumberBuffer, 32);
-                Serial.println(RandomString);
-                IsRandomSend = 1;
-              }
-              
 
               // Display the HTML web page
               client.println("<!DOCTYPE html><html>");
@@ -343,10 +332,34 @@ void loop()
               // The HTTP response ends with another blank line
               client.println();
               // Break out of the while loop
+              break;
             }
             if ((path[0] == "/lock") && (NArg == 4))
             {
-              
+              if (Hmac256Verify(key,RandomString,path[2]) == 0)
+              {
+
+              }
+            }
+            if ((path[0] == "/getvalue") && (NArg == 1))
+            {
+              //if (IsRandomSend == 0)
+              //{
+                RandomString = GetRandomString(RandomNumberBuffer, 32);
+                Serial.println(RandomString);
+                IsRandomSend = 1;
+
+              Serial.println("Inside /getvalue");
+              client.println("HTTP/1.1 200 OK");
+              client.println("Content-type:text/html; charset=utf-8");
+              client.println("Content-Length: 64");
+              client.println("Connection: close");
+              client.println();
+
+              client.print(RandomString);
+              client.println();
+              //}
+              break;
             }
           }
 
