@@ -1,8 +1,7 @@
-﻿#include <Arduino.h>
+#include <Arduino.h>
 #include <WiFi.h>
 #include "mbedtls/md.h"
 #include <Cryptojs.h>
-
 
 const char *Ok_js_header = "HTTP/1.1 200 OK\nHost: site.com\nContent-Type: application/javascript; charset=utf-8\nConnection: close\nContent-Length:";
 //'''+str(len(content))+''' \r\n\r\n'''
@@ -13,8 +12,6 @@ const char *Ok_js_header = "HTTP/1.1 200 OK\nHost: site.com\nContent-Type: appli
 
 const char *ssid = "ssid";
 const char *password = "password";
-
-
 
 // Set web server port number to 80
 WiFiServer server(80);
@@ -31,21 +28,20 @@ const int output26 = 26;
 const int output27 = 27;
 
 uint8_t RandomNumberBuffer[32];
+uint8_t hmacResult[32];
 
-char *key = "secretKey";
+char *key = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
-String Hmac256Calculate(char *key, char *payload)
+void Hmac256Calculate(uint8_t *key, uint8_t *payload, uint8_t *hmacResult)
 {
   //char *key = "secretKey";
   //char *payload = "Hello HMAC SHA 256!";
-  byte hmacResult[32];
-  String result="";
 
   mbedtls_md_context_t ctx;
   mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
 
-  const size_t payloadLength = strlen(payload);
-  const size_t keyLength = strlen(key);
+  const size_t payloadLength = strlen((char*)payload);
+  const size_t keyLength = strlen((char*)key);
 
   mbedtls_md_init(&ctx);
   mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 1);
@@ -53,29 +49,148 @@ String Hmac256Calculate(char *key, char *payload)
   mbedtls_md_hmac_update(&ctx, (const unsigned char *)payload, payloadLength);
   mbedtls_md_hmac_finish(&ctx, hmacResult);
   mbedtls_md_free(&ctx);
-
+}
+String ByteToHex(char *hex)
+{
+  String result = "";
   Serial.print("Hash: ");
-
-  for (int i = 0; i < sizeof(hmacResult); i++)
+  for (int i = 0; i < sizeof(hex); i++)
   {
     char str[3];
 
-    sprintf(str, "%02x", (int)hmacResult[i]);
+    sprintf(str, "%02x", (int)hex[i]);
     Serial.print(str);
-    result+=str;
+    result += str;
   }
+
   return result;
 }
-int Hmac256Verify(char *key,char *rowdata,String *encrypteddata)
+int Hmac256Verify(uint8_t *key, uint8_t *rowdata, String encrypteddata)
 {
-  String result = Hmac256Calculate(key,rowdata);
-  
+  uint8_t hmacResult[32];
+  String result = "";
+
+  Hmac256Calculate(key, rowdata,hmacResult);
+  result = ByteToHex((char*)hmacResult);
   int counter = 0;
-  for (int i=1; i<64;i++)
+  for (int i = 0; i < 64; i++)
   {
-    counter +=result[i]^encrypteddata[i];
+    counter += result[i] ^ encrypteddata[i];
   }
   return counter;
+}
+void StringHexToByte(String InputData, uint8_t *bytearray, uint8_t arraylen)
+{
+  uint8_t b = 0, bt = 0;
+  uint8_t halfbyte = 0;
+  uint8_t j = 0;
+  if ((InputData.length() % 2 == 0) && (InputData.length() == arraylen * 2))
+  {
+    for (int i = 0; i < arraylen; i++)
+    {
+      bytearray[i] = 0;
+    }
+    for (int i = 0; i < arraylen * 2; i++)
+    {
+      switch (InputData[i])
+      {
+      case '0':
+      {
+        b = 0;
+        break;
+      };
+      case '1':
+      {
+        b = 1;
+        break;
+      };
+      case '2':
+      {
+        b = 2;
+        break;
+      };
+      case '3':
+      {
+        b = 3;
+        break;
+      };
+      case '4':
+      {
+        b = 4;
+        break;
+      };
+      case '5':
+      {
+        b = 5;
+        break;
+      };
+      case '6':
+      {
+        b = 6;
+        break;
+      };
+      case '7':
+      {
+        b = 7;
+        break;
+      };
+      case '8':
+      {
+        b = 8;
+        break;
+      };
+      case '9':
+      {
+        b = 9;
+        break;
+      };
+      case 'a':
+      {
+        b = 10;
+        break;
+      };
+      case 'b':
+      {
+        b = 11;
+        break;
+      };
+      case 'c':
+      {
+        b = 12;
+        break;
+      };
+      case 'd':
+      {
+        b = 13;
+        break;
+      };
+      case 'e':
+      {
+        b = 14;
+        break;
+      };
+      case 'f':
+      {
+        b = 15;
+        break;
+      };
+      }
+      if (halfbyte == 0)
+      {
+
+        bt = b << 4;
+        halfbyte = 1;
+      }
+      else
+      {
+        bt |= b;
+        bytearray[j] = bt;
+        j++;
+        halfbyte = 0;
+        bt = 0;
+      }
+    }
+  }
 }
 void setup()
 {
@@ -144,17 +259,7 @@ String GetRandomString(uint8_t *buffer, uint8_t size)
   Serial.println();
   Serial.print(test);
   Serial.println();
-  /*
-    test ="";
-    char str1[3];
-    for(int i=0; i<(size);i++)
-    {
-      sprintf(str1, "%02x", *(Bp+i));
-      test += str1;
-      Serial.print(str1);
-    }
-    Serial.println();
-    */
+
   return test;
 }
 String StrCut(String Inputdata, int pos1, int pos2)
@@ -286,7 +391,8 @@ void loop()
               client.write(SC_SHA256_js_min_gz, sizeof(SC_SHA256_js_min_gz));
               break;
             }
-          }else
+          }
+          else
           {
 
             if (path[0] == "/")
@@ -321,11 +427,11 @@ void loop()
               // If the output27State is off, it displays the ON button
               if (output27State == "off")
               {
-                client.println("<button id=\"lock1\" class=\"button\">Unlock</button>");
+                client.println("<button onclick=\"StateChange()\" id=\"lock1\" value=\"Unlock\" class=\"button\">Unlock</button>");
               }
               else
               {
-                client.println("<button id=\"lock1\" class=\"button button2\">LOCK</button>");
+                client.println("<button onclick=\"StateChange()\" id=\"lock1\" value=\"Lock\" class=\"button button2\">Lock</button>");
               }
               client.println("</body></html>");
 
@@ -334,20 +440,21 @@ void loop()
               // Break out of the while loop
               break;
             }
-            if ((path[0] == "/lock") && (NArg == 4))
+            if ((path[0] == "/lock") && (NArg == 3))
             {
-              if (Hmac256Verify(key,RandomString,path[2]) == 0)
+              Serial.print("Enter to verify hmac");
+              if (Hmac256Verify((uint8_t*)key, RandomNumberBuffer, path[2]) == 0)
               {
-
+                Serial.print("Correct!");
               }
             }
             if ((path[0] == "/getvalue") && (NArg == 1))
             {
               //if (IsRandomSend == 0)
               //{
-                RandomString = GetRandomString(RandomNumberBuffer, 32);
-                Serial.println(RandomString);
-                IsRandomSend = 1;
+              RandomString = GetRandomString(RandomNumberBuffer, 32);
+              Serial.println(RandomString);
+              IsRandomSend = 1;
 
               Serial.println("Inside /getvalue");
               client.println("HTTP/1.1 200 OK");
@@ -378,4 +485,4 @@ void loop()
   }
   //GetRandomString(RandomNumberBuffer,32);
   //delayMicroseconds(1000000);
-}  
+}
