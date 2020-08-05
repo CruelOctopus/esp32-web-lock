@@ -18,7 +18,7 @@ html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-ali
 <body>
 <h1>ESP32 Web Server</h1>
 <button onclick="StateChange()" id="lock1" value="Unlock" class="button">Unlock</button>
-<input id="file-input" type="file" name="name"  style="display: none;" accept=".key" onchange = "ReadKeyFile(this)"}/>
+<input id="file-input" type="file" name="name"  style="display: none;" accept=".key" onchange = "ReadKeyFile()"}/>
 <br>
 <button class="button" id ="keybutton" onclick="document.getElementById('file-input').click();">Key</button>
 </body>

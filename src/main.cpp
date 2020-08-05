@@ -391,6 +391,19 @@ void loop()
               client.write(SC_SHA256_js_min_gz, sizeof(SC_SHA256_js_min_gz));
               break;
             }
+            if (header.indexOf("/Lock.js") >= 0)
+            {
+              client.println("HTTP/1.1 200 OK");
+              client.println("Host: site.com");
+              client.println("Content-Type: text/javascript");
+              client.println("Content-Encoding: gzip");
+              client.println("Connection: close");
+              client.println("Content-Length: 453");
+              //Serial.print(sizeof(SC_Crypto_js_min_gz));
+              client.println();
+              client.write(SC_Lock_js_min_gz, sizeof(SC_Lock_js_min_gz));
+              break;
+            }
           }
           else
           {
@@ -412,12 +425,12 @@ void loop()
               client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
               client.println(".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px;");
               client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
-              client.println(".button2 {background-color: #555555;}</style>");
+              client.println(".button2 {background-color: #555555;} #keybutton {background-color: red;}</style>");
 
               client.println("<script type=\"text/javascript\" src=\"Crypto.js\"></script>");
-              //client.println(s);
               client.println("<script type=\"text/javascript\" src=\"HMAC.js\"></script>");
               client.println("<script type=\"text/javascript\" src=\"SHA256.js\"></script>");
+              client.println("<script type=\"text/javascript\" src=\"Lock.js\"></script>");
               client.println("</head>");
               // Web Page Heading
               client.println("<body><h1>ESP32 Web Server</h1>");
@@ -433,6 +446,8 @@ void loop()
               {
                 client.println("<button onclick=\"StateChange()\" id=\"lock1\" value=\"Lock\" class=\"button button2\">Lock</button>");
               }
+              client.println("<input id=\"file-input\" type=\"file\" name=\"name\"  style=\"display: none;\" accept=\".key\" onchange = \"ReadKeyFile()\"}/><br>");
+              client.println("<button class=\"button\" id =\"keybutton\" onclick=\"document.getElementById('file-input').click();\">Key</button>");
               client.println("</body></html>");
 
               // The HTTP response ends with another blank line

@@ -1,19 +1,21 @@
-
-
+var HexKey ="";
 function StateChange(){
+if(HexKey ===""){alert("Enter the key first!");}else{
 var request = new XMLHttpRequest();
 request.open('GET', '/getvalue');
 request.responseType = 'text';
 
 request.onload = function() {
 var bytearray;
+var ByteKey;
 	alert(request.response);
 	bytearray = toByteArray(request.response);
-	key = toByteArray(request.response);
-	Crypto.HMAC(Crypto.SHA256 , bytearray, key);
+	ByteKey = toByteArray(HexKey);
+	Crypto.HMAC(Crypto.SHA256 , bytearray, ByteKey);
 };
 
 request.send();
+}
 }
 
 function readFile(input) {
@@ -25,6 +27,7 @@ function readFile(input) {
 
   reader.onload = function() {
     console.log(reader.result);
+	HexKey = reader.result;
   };
 
   reader.onerror = function() {
