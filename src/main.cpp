@@ -28,11 +28,13 @@ const int output26 = 26;
 const int output27 = 27;
 
 uint8_t RandomNumberBuffer[32];
-uint8_t hmacResult[32];
+uint8_t hmacResult1[32];
+uint8_t BKeyLen = 64;
+uint8_t ByteKey[64];
+const char *key = "11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff";
 
-char *key = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
-void Hmac256Calculate(uint8_t *key, uint8_t *payload, uint8_t *hmacResult)
+void Hmac256Calculate(uint8_t *key, uint8_t keyLength, uint8_t *payload, uint8_t payloadLength, uint8_t *hmacResult)
 {
   //char *key = "secretKey";
   //char *payload = "Hello HMAC SHA 256!";
@@ -40,8 +42,14 @@ void Hmac256Calculate(uint8_t *key, uint8_t *payload, uint8_t *hmacResult)
   mbedtls_md_context_t ctx;
   mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
 
-  const size_t payloadLength = strlen((char*)payload);
-  const size_t keyLength = strlen((char*)key);
+  //const size_t payloadLength = strlen((char*)payload);
+  //const size_t keyLength = strlen((char*)key);
+
+  Serial.print("payloadLength: ");
+  Serial.println(payloadLength);
+
+    Serial.print("keyLength: ");
+  Serial.println(keyLength);
 
   mbedtls_md_init(&ctx);
   mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 1);
@@ -50,41 +58,54 @@ void Hmac256Calculate(uint8_t *key, uint8_t *payload, uint8_t *hmacResult)
   mbedtls_md_hmac_finish(&ctx, hmacResult);
   mbedtls_md_free(&ctx);
 }
-String ByteToHex(char *hex)
+String ByteToHex(char *hex, int len)
 {
   String result = "";
-  Serial.print("Hash: ");
-  for (int i = 0; i < sizeof(hex); i++)
+  //Serial.print("Hash: ");
+  for (int i = 0; i < len; i++)
   {
     char str[3];
 
     sprintf(str, "%02x", (int)hex[i]);
-    Serial.print(str);
+    //Serial.print(str);
     result += str;
   }
 
   return result;
 }
-int Hmac256Verify(uint8_t *key, uint8_t *rowdata, String encrypteddata)
+int Hmac256Verify(uint8_t *key, uint8_t *rawdata, String encrypteddata)
 {
   uint8_t hmacResult[32];
   String result = "";
+  Hmac256Calculate(key,64, rawdata,32,hmacResult);
 
-  Hmac256Calculate(key, rowdata,hmacResult);
-  result = ByteToHex((char*)hmacResult);
+  for (int i =0;i<64;i++){Serial.print((unsigned int)key[i]);Serial.print(" ");}
+  Serial.println();
+  for (int i =0;i<32;i++){Serial.print((unsigned int)hmacResult[i]);Serial.print(" ");}
+  Serial.println();
+
+  result = ByteToHex((char*)hmacResult,sizeof(hmacResult));
+
+  Serial.println("\n encrypteddata: "+encrypteddata );
+  Serial.println("\n result: "+result );
+  Serial.println("\n *row: " );
+  for (int i =0;i<32;i++){Serial.print((unsigned int)rawdata[i]);Serial.print(" ");}
+  Serial.println();
+
   int counter = 0;
   for (int i = 0; i < 64; i++)
   {
-    counter += result[i] ^ encrypteddata[i];
+    counter += result[i] ^ encrypteddata[i+1];
   }
   return counter;
+
 }
-void StringHexToByte(String InputData, uint8_t *bytearray, uint8_t arraylen)
+void StringHexToByte(uint8_t *InputData, uint8_t *bytearray, uint8_t arraylen)
 {
   uint8_t b = 0, bt = 0;
   uint8_t halfbyte = 0;
   uint8_t j = 0;
-  if ((InputData.length() % 2 == 0) && (InputData.length() == arraylen * 2))
+  if (arraylen % 2 == 0)
   {
     for (int i = 0; i < arraylen; i++)
     {
@@ -234,6 +255,23 @@ void setup()
   Serial.println(WiFi.localIP());
 
   server.begin();
+
+
+  
+
+
+  //for (int i =0;i<64;i++){Serial.print((ByteKey[i]+"|" ));}
+  Serial.println();
+  StringHexToByte((uint8_t*)key,ByteKey,BKeyLen);
+  uint8_t a[4]; // ff b4 50 00
+  a[0] = 255;
+  a[1] = 180;
+  a[2] = 80;
+  a[3] = 0;
+  Hmac256Calculate(ByteKey,64,a,32,hmacResult1);
+  for (int i =0;i<32;i++){Serial.print((unsigned int)(hmacResult1[i]));Serial.print(" ");}
+  //for (int i =0;i<64;i++){Serial.print(char(ByteKey[i]));}
+  Serial.println();
 }
 String GetRandomString(uint8_t *buffer, uint8_t size)
 {
@@ -359,7 +397,7 @@ void loop()
               client.println("Content-Type: text/javascript");
               client.println("Content-Encoding: gzip");
               client.println("Connection: close");
-              client.println("Content-Length: 825");
+              client.println("Content-Length: "+sizeof(SC_Crypto_js_min_gz));
               //Serial.print(sizeof(SC_Crypto_js_min_gz));
               client.println();
               client.write(SC_Crypto_js_min_gz, sizeof(SC_Crypto_js_min_gz));
@@ -372,7 +410,7 @@ void loop()
               client.println("Content-Type: text/javascript");
               client.println("Content-Encoding: gzip");
               client.println("Connection: close");
-              client.println("Content-Length: 253");
+              client.println("Content-Length: "+sizeof(SC_HMAC_js_min_gz));
               //Serial.print(sizeof(SC_Crypto_js_min_gz));
               client.println();
               client.write(SC_HMAC_js_min_gz, sizeof(SC_HMAC_js_min_gz));
@@ -385,7 +423,7 @@ void loop()
               client.println("Content-Type: text/javascript");
               client.println("Content-Encoding: gzip");
               client.println("Connection: close");
-              client.println("Content-Length: 1014");
+              client.println("Content-Length: "+sizeof(SC_SHA256_js_min_gz));
               //Serial.print(sizeof(SC_Crypto_js_min_gz));
               client.println();
               client.write(SC_SHA256_js_min_gz, sizeof(SC_SHA256_js_min_gz));
@@ -398,7 +436,7 @@ void loop()
               client.println("Content-Type: text/javascript");
               client.println("Content-Encoding: gzip");
               client.println("Connection: close");
-              client.println("Content-Length: 453");
+              client.println("Content-Length: "+sizeof(SC_Lock_js_min_gz));
               //Serial.print(sizeof(SC_Crypto_js_min_gz));
               client.println();
               client.write(SC_Lock_js_min_gz, sizeof(SC_Lock_js_min_gz));
@@ -457,11 +495,25 @@ void loop()
             }
             if ((path[0] == "/lock") && (NArg == 3))
             {
-              Serial.print("Enter to verify hmac");
-              if (Hmac256Verify((uint8_t*)key, RandomNumberBuffer, path[2]) == 0)
+              Serial.println("Inside /getvalue");
+              Serial.println("Enter to verify hmac");
+              //client.stop();// for debug
+              
+              if (Hmac256Verify(ByteKey, RandomNumberBuffer, path[2]) == 0)
               {
-                Serial.print("Correct!");
+                const char * respond = "{\"device\":\"Lock1\",\"state\":\"Unlock\"}";
+                client.println("HTTP/1.1 200 OK");
+                client.println("Content-type:application/json; charset=utf-8");
+                client.println("Content-Length: "+sizeof(respond));
+                client.println("Connection: close");
+                client.println();
+
+                client.print(respond);
+                client.println();
+
+                Serial.println("Correct!");
               }
+              break;
             }
             if ((path[0] == "/getvalue") && (NArg == 1))
             {
@@ -498,6 +550,5 @@ void loop()
     Serial.println("Client disconnected.");
     Serial.println("");
   }
-  //GetRandomString(RandomNumberBuffer,32);
-  //delayMicroseconds(1000000);
+
 }

@@ -1,6 +1,8 @@
 var HexKey ="";
 function StateChange(){
 if(HexKey ===""){alert("Enter the key first!");}else{
+
+var HMACResult ="";
 var request = new XMLHttpRequest();
 request.open('GET', '/getvalue');
 request.responseType = 'text';
@@ -8,13 +10,31 @@ request.responseType = 'text';
 request.onload = function() {
 var bytearray;
 var ByteKey;
-	alert(request.response);
-	bytearray = toByteArray(request.response);
-	ByteKey = toByteArray(HexKey);
-	Crypto.HMAC(Crypto.SHA256 , bytearray, ByteKey);
-};
+
+	console.log(request.response);
+	bytearray = Crypto.util.hexToBytes(request.response);
+	console.log(bytearray);
+	ByteKey = Crypto.util.hexToBytes(HexKey);
+	console.log(ByteKey);
+	HMACResult = Crypto.HMAC(Crypto.SHA256 , bytearray, ByteKey);
+	console.log(HMACResult);
+	
+	var request1 = new XMLHttpRequest();
+	request1.open('GET', '/lock/0n/'+HMACResult);
+	request1.responseType = 'json';
+
+	request1.onload = function() {
+	console.log(request1.response);
+	alert(request1.response);
+	};
+	request1.send();
+	
+	};
 
 request.send();
+
+
+
 }
 }
 
