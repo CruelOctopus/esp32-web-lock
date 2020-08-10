@@ -239,7 +239,7 @@ void setup()
 --------------WIFI AP END */
 
   WiFi.begin(ssid, password);
-
+  WiFi.setSleep(false);
   // пытаемся подключиться к WiFi-сети:
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -463,7 +463,7 @@ void loop()
               client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
               client.println(".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px;");
               client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
-              client.println(".button2 {background-color: #555555;} #keybutton {background-color: red;}</style>");
+              client.println(" #keybutton {background-color: red;}</style>");
 
               client.println("<script type=\"text/javascript\" src=\"Crypto.js\"></script>");
               client.println("<script type=\"text/javascript\" src=\"HMAC.js\"></script>");
@@ -476,13 +476,13 @@ void loop()
               // Display current state, and ON/OFF buttons for GPIO 27
               client.println("<p>GPIO 27 - State " + output27State + "</p>");
               // If the output27State is off, it displays the ON button
-              if (output27State == "off")
+              if (output27State == "Off")
               {
-                client.println("<button onclick=\"StateChange()\" id=\"lock1\" value=\"Unlock\" class=\"button\">Unlock</button>");
+                client.println("<button style=\"background-color:Red;\" onclick=\"StateChange()\" id=\"lock1\" value=\"Unlock\" class=\"button\">Unlock</button>");
               }
               else
               {
-                client.println("<button onclick=\"StateChange()\" id=\"lock1\" value=\"Lock\" class=\"button button2\">Lock</button>");
+                client.println("<button style=\"background-color:Green;\" onclick=\"StateChange()\" id=\"lock1\" value=\"Lock\" class=\"button\">Lock</button>");
               }
               client.println("<input id=\"file-input\" type=\"file\" name=\"name\"  style=\"display: none;\" accept=\".key\" onchange = \"ReadKeyFile()\"}/><br>");
               client.println("<button class=\"button\" id =\"keybutton\" onclick=\"document.getElementById('file-input').click();\">Key</button>");
@@ -501,17 +501,31 @@ void loop()
               
               if (Hmac256Verify(ByteKey, RandomNumberBuffer, path[2]) == 0)
               {
-                const char * respond = "{\"device\":\"Lock1\",\"state\":\"Unlock\"}";
+                const char * RespondLock = "{\"device\":\"Lock1\",\"state\":\"Lock\"}";
+                const char * RespondUnlock = "{\"device\":\"Lock1\",\"state\":\"Unlock\"}";
+                
                 client.println("HTTP/1.1 200 OK");
                 client.println("Content-type:application/json; charset=utf-8");
-                client.println("Content-Length: "+sizeof(respond));
-                client.println("Connection: close");
-                client.println();
-
-                client.print(respond);
-                client.println();
-
-                Serial.println("Correct!");
+                
+                if(path[1] =="/lock")
+                {
+                  digitalWrite(output27, HIGH);
+                  output27State = "On";
+                  client.println("Content-Length: "+sizeof(RespondLock));
+                  client.println("Connection: close");
+                  client.println();
+                  client.print(RespondLock);
+                }else if(path[1] =="/unlock")
+                  {
+                    output27State = "Off";
+                    digitalWrite(output27, LOW);
+                    client.println("Content-Length: "+sizeof(RespondUnlock));
+                    client.println("Connection: close");
+                    client.println();
+                    client.print(RespondUnlock);
+                  }
+                  client.println();
+                  Serial.println("Correct!");
               }
               break;
             }
